@@ -8,11 +8,11 @@ local _p = _gs(_g, _s(80,108,97,121,101,114,115))
 local _lp = _p.LocalPlayer
 local _rf = loadstring(_g:HttpGet(_s(104,116,116,112,115,58,47,47,115,105,114,105,117,115,46,109,101,110,117,47,114,97,121,102,105,101,108,100)))()
 
-local _set = {Enabled = false, Range = 15, Sens = 10}
+local _set = {Enabled = false, Range = 16, Sensitivity = 18}
 
 local _win = _rf:CreateWindow({
    Name = "Niks Hub | Zero-Errors",
-   LoadingTitle = "Physics Bypass System",
+   LoadingTitle = "Physics Protection Mode",
    LoadingSubtitle = "by Niks",
    ConfigurationSaving = {Enabled = true, FolderName = "NiksHub_V2"}
 })
@@ -23,12 +23,12 @@ local function _parry(targetRoot)
     pcall(function()
         local myRoot = _lp.Character and _lp.Character:FindFirstChild("HumanoidRootPart")
         if myRoot then
-            -- Разворот к врагу
+            -- Разворот к врагу (важно для успешного блока)
             myRoot.CFrame = CFrame.lookAt(myRoot.Position, Vector3.new(targetRoot.Position.X, myRoot.Position.Y, targetRoot.Position.Z))
         end
-        -- Нажатие блока
+        -- Эмуляция нажатия F
         _v:SendKeyEvent(true, Enum.KeyCode.F, false, _g)
-        task.wait(0.01)
+        task.wait(0.02)
         _v:SendKeyEvent(false, Enum.KeyCode.F, false, _g)
     end)
 end
@@ -41,15 +41,15 @@ _tab:CreateToggle({
 })
 
 _tab:CreateSlider({
-   Name = "Range",
-   Range = {5, 25},
+   Name = "Detection Range",
+   Range = {5, 30},
    Increment = 1,
-   CurrentValue = 15,
+   CurrentValue = 16,
    Flag = "Range",
    Callback = function(v) _set.Range = v end,
 })
 
--- Основной поток (только физика)
+-- Цикл проверки физики
 _r.Heartbeat:Connect(function()
     if not _set.Enabled then return end
     
@@ -59,20 +59,20 @@ _r.Heartbeat:Connect(function()
 
     for _, enemy in pairs(_p:GetPlayers()) do
         if enemy ~= _lp and enemy.Character then
-            pcall(function() -- Оборачиваем всё в pcall, чтобы ошибки консоли не тормозили цикл
-                local eRoot = enemy.Character:FindFirstChild("HumanoidRootPart")
+            pcall(function()
+                -- Ищем любую доступную часть тела (Root или Torso)
+                local eRoot = enemy.Character:FindFirstChild("HumanoidRootPart") or enemy.Character:FindFirstChild("Torso")
                 if eRoot then
                     local dist = (myRoot.Position - eRoot.Position).Magnitude
                     
                     if dist <= _set.Range then
-                        -- Метод относительной скорости:
-                        -- Если враг движется в нашу сторону со скоростью удара
-                        local relVel = (eRoot.Velocity - myRoot.Velocity).Magnitude
+                        -- Проверяем вектор скорости врага относительно нас
+                        local relativeVelocity = (eRoot.Velocity - myRoot.Velocity).Magnitude
                         
-                        -- В Combat Warriors удар всегда дает импульс скорости > 15
-                        if relVel > 18 or dist < 7 then 
+                        -- Если враг делает выпад (скорость > 18) или он слишком близко (дистанция < 7)
+                        if relativeVelocity > _set.Sensitivity or dist < 7 then
                             _parry(eRoot)
-                            task.wait(0.5) -- Кулдаун, чтобы не спамить впустую
+                            task.wait(0.5) -- Кулдаун, чтобы не спамить блок
                         end
                     end
                 end
