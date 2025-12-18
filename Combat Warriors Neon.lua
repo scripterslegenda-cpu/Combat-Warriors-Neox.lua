@@ -1,70 +1,66 @@
--- Niks Hub V3.1: Combat Warriors (Final Fixed & Obfuscated)
+-- Полная очистка от старых ошибок
 local _S = string.char
 local _G_ = game
 local _GS = _G_.GetService
-
 local _P = _GS(_G_, _S(80,108,97,121,101,114,115))
 local _LP = _P.LocalPlayer
 local _RS = _GS(_G_, _S(82,117,110,83,101,114,118,105,99,101))
 local _VIM = _GS(_G_, _S(86,105,114,116,117,97,108,73,110,112,117,116,77,97,110,97,103,101,114))
 
-local _K = {
-    F = Enum.KeyCode.F,
-    A1 = Enum.AnimationPriority.Action,
-    A2 = Enum.AnimationPriority.Action2
-}
+-- Настройки
+local _RANGE = 12
+local _COOLDOWN = false
 
-local _X1 = function(_pos)
-    local _wait = math.random(7, 11) / 100 
+local function _DO_PARRY(_target)
+    if _COOLDOWN then return end
+    _COOLDOWN = true
+    
+    -- Авто-поворот (теперь через CFrame.lookAt для стабильности)
     if _LP.Character and _LP.Character:FindFirstChild("HumanoidRootPart") then
-        local _root = _LP.Character.HumanoidRootPart
-        _root.CFrame = CFrame.new(_root.Position, Vector3.new(_pos.X, _root.Position.Y, _pos.Z))
+        local _hrp = _LP.Character.HumanoidRootPart
+        _hrp.CFrame = CFrame.lookAt(_hrp.Position, Vector3.new(_target.X, _hrp.Position.Y, _target.Z))
     end
-    task.wait(_wait)
-    _VIM:SendKeyEvent(true, _K.F, false, _G_)
-    task.wait(0.01)
-    _VIM:SendKeyEvent(false, _K.F, false, _G_)
+
+    -- Рандомная задержка (человеческий фактор)
+    task.wait(math.random(6, 11) / 100)
+    
+    _VIM:SendKeyEvent(true, Enum.KeyCode.F, false, _G_)
+    task.wait(0.02)
+    _VIM:SendKeyEvent(false, Enum.KeyCode.F, false, _G_)
+    
+    task.wait(0.35) -- Кулдаун блока
+    _COOLDOWN = false
 end
 
-_RS.Stepped:Connect(function()
-    local _c = _LP.Character
-    if not _c or not _c:FindFirstChild("HumanoidRootPart") then return end
-    
-    for _, _e in pairs(_P:GetPlayers()) do
-        if _e ~= _LP and _e.Character and _e.Character:FindFirstChild("HumanoidRootPart") then
-            local _ec = _e.Character
-            local _er = _ec.HumanoidRootPart
-            local _mr = _c.HumanoidRootPart
-            local _dist = (_mr.Position - _er.Position).Magnitude
-            
-            if _dist <= 12 then
-                -- Безопасная проверка аниматора
-                local _h = _ec:FindFirstChildOfClass("Humanoid")
-                local _anim = _h and _h:FindFirstChildOfClass("Animator")
-                
-                if _anim then
-                    for _, _t in pairs(_anim:GetPlayingAnimationTracks()) do
-                        if _t.Priority == _K.A1 or _t.Priority == _K.A2 then
-                            if _t.Speed > 0.4 and _t.TimePosition < 0.17 then
-                                local _dot = (_mr.Position - _er.Position).Unit:Dot(_er.CFrame.LookVector)
-                                if _dot > 0.3 then
-                                    _X1(_er.Position)
-                                    task.wait(_dist < 6 and 0.22 or 0.4)
-                                    return 
-                                end
+_RS.Heartbeat:Connect(function()
+    local _myChar = _LP.Character
+    if not _myChar or not _myChar:FindFirstChild("HumanoidRootPart") then return end
+
+    for _, _enemy in pairs(_P:GetPlayers()) do
+        if _enemy ~= _LP and _enemy.Character and _enemy.Character:FindFirstChild("HumanoidRootPart") then
+            local _eChar = _enemy.Character
+            local _eRoot = _eChar.HumanoidRootPart
+            local _dist = (_myChar.HumanoidRootPart.Position - _eRoot.Position).Magnitude
+
+            if _dist <= _RANGE then
+                local _eHum = _eChar:FindFirstChildOfClass("Humanoid")
+                if not _eHum then continue end
+
+                -- ПРОВЕРКА ЧЕРЕЗ СОСТОЯНИЕ (Надежнее анимаций)
+                -- Если враг в состоянии атаки или проигрывает активный трек
+                local _animator = _eHum:FindFirstChildOfClass("Animator")
+                if _animator then
+                    local _tracks = _animator:GetPlayingAnimationTracks()
+                    for _, _t in pairs(_tracks) do
+                        -- В CW почти все атаки имеют Priority > 2 (Action/Action2)
+                        if _t.Priority.Value >= 2 and _t.Speed > 0.3 then
+                            -- Проверка: направлен ли враг на нас
+                            local _dot = (_myChar.HumanoidRootPart.Position - _eRoot.Position).Unit:Dot(_eRoot.CFrame.LookVector)
+                            
+                            if _dot > 0.25 then -- Увеличили угол обзора
+                                _DO_PARRY(_eRoot.Position)
+                                break
                             end
-                        end
-                    end
-                end
-                
-                -- Безопасная проверка звука (исправление ошибки из твоей консоли)
-                local _head = _ec:FindFirstChild("Head")
-                if _head then
-                    for _, _s in pairs(_head:GetChildren()) do
-                        if _s:IsA("Sound") and _s.Playing and (_s.Name:lower():find("swing") or _s.Name:lower():find("slash")) then
-                            _X1(_er.Position)
-                            task.wait(0.4)
-                            return
                         end
                     end
                 end
