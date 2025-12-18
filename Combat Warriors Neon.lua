@@ -1,2 +1,47 @@
---[[ Niks Hub | Velocity Test Tool ]]--
-local _l=string.char;local _g=game;local _gs=_g.GetService;local _p=_gs(_g,_l(80,108,97,121,101,114,115));local _lp=_p.LocalPlayer;local _s,_rf=pcall(function()return loadstring(_g:HttpGet(_l(104,116,116,112,115,58,47,47,115,105,114,105,117,115,46,109,101,110,117,47,114,97,121,102,105,101,108,100)))()end)if not _s or not _rf then return end;local _w=_rf:CreateWindow({Name="Niks Hub | TEST",LoadingTitle="Verifying System...",LoadingSubtitle="Bypass Check",ConfigurationSaving={Enabled=false}})local _t=_w:CreateTab(_l(77,111,118,101,109,101,110,116),4483362458)_t:CreateSlider({Name="Value",Range={16,100},Increment=1,CurrentValue=16,Flag="S1",Callback=function(_v)local _c=_lp.Character;local _h=_c and _c:FindFirstChild(_l(72,117,109,97,110,111,105,100))if _h then _h[_l(87,97,108,107,83,112,101,101,100)]=_v end end})_lp.CharacterAdded:Connect(function(_c)local _h=_c:WaitForChild(_l(72,117,109,97,110,111,105,100))task.wait(1)_h[_l(87,97,108,107,83,112,101,101,100)]=16 end)
+--[[ Niks Hub | Neon Edition Fixed ]]--
+local _l=string.char;local _g=game;local _gs=_g.GetService;local _p=_gs(_g,_l(80,108,97,121,101,114,115));local _lp=_p.LocalPlayer;
+
+-- Защищенная загрузка интерфейса
+task.spawn(function()
+    local success, Rayfield = pcall(function()
+        return loadstring(_g:HttpGet("https://sirius.menu/rayfield"))()
+    end)
+    
+    if not success or not Rayfield then return end
+
+    local Window = Rayfield:CreateWindow({
+        Name = "Niks Hub | Neon Fixed",
+        LoadingTitle = "Bypassing Hitbox Errors...",
+        LoadingSubtitle = "Error Count: 0",
+        ConfigurationSaving = {Enabled = false}
+    })
+
+    local Tab = Window:CreateTab("Combat", 4483362458)
+    
+    -- Пример кнопки, которая теперь не будет лагать
+    Tab:CreateToggle({
+        Name = "Stable AutoParry",
+        CurrentValue = false,
+        Flag = "AP_Stable",
+        Callback = function(v)
+            _G.ParryActive = v
+        end
+    })
+end)
+
+-- Исправленный цикл проверки (без спама в консоль)
+_gs(_g, "RunService").Heartbeat:Connect(function()
+    if not _G.ParryActive then return end
+    
+    pcall(function()
+        -- Мы ищем хитбоксы только если они реально существуют
+        for _, v in pairs(workspace.PlayerCharacters:GetChildren()) do
+            if v ~= _lp.Character and v:FindFirstChild("Fists") then
+                local hitboxes = v.Fists:FindFirstChild("Hitboxes")
+                if hitboxes then
+                    -- Только здесь выполняем логику
+                end
+            end
+        end
+    end)
+end)
